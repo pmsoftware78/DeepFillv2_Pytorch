@@ -1,14 +1,13 @@
 python3 train.py \
---baseroot '../../inpainting/dataset/Places/img_set' \
+--baseroot 'src' \
 --save_path './models' \
 --sample_path './samples' \
---gpu_ids '0,1' \
 --gan_type 'WGAN' \
---cudnn_benchmark True \
 --checkpoint_interval 1 \
---multi_gpu True \
 --load_name '' \
 --epochs 41 \
+--resume \
+--resume_epoch 13 \
 --batch_size 2 \
 --lr_g 1e-4 \
 --lr_d 1e-4 \
@@ -17,7 +16,7 @@ python3 train.py \
 --lambda_gan 1 \
 --lr_decrease_epoch 10 \
 --lr_decrease_factor 0.5 \
---num_workers 8 \
+--num_workers 2 \
 --in_channels 4 \
 --out_channels 3 \
 --latent_channels 48 \

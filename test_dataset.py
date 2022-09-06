@@ -23,6 +23,7 @@ class InpaintDataset(Dataset):
 
     def __getitem__(self, index):
         # image
+        print(index, "Load",self.imglist[index],self.masklist[index])
         img = cv2.imread(self.imglist[index])
         mask = cv2.imread(self.masklist[index])[:, :, 0]
         # find the Minimum bounding rectangle in the mask

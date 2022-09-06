@@ -21,6 +21,8 @@ class InpaintDataset(Dataset):
         assert opt.mask_type in ALLMASKTYPES
         self.opt = opt
         self.imglist = utils.get_files(opt.baseroot)
+        global SEED
+        SEED = opt.resume_epoch * 2
 
     def __len__(self):
         return len(self.imglist)
@@ -28,21 +30,38 @@ class InpaintDataset(Dataset):
     def __getitem__(self, index):
         # image
         global SEED
+        #print(index , ": " , self.imglist[index])
         img = cv2.imread(self.imglist[index])
+        head, tail = os.path.split(self.imglist[index])
+        head, tail2 = os.path.split(head)
+        pre, ext = os.path.splitext(tail)
+        maskfile = "mask/" + pre + ".png"
+        
+        print(index , ": " , self.imglist[index], maskfile, "...")
+        
+        mask = cv2.imread(maskfile)
+        
+        if type(mask) == None:
+              print(maskfile, " is missing?")
+        
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        print("    ",img.shape, mask.shape)
+        mask = mask[:, :, 0]
+        
         # set the different image size for each batch (data augmentation)
         if index % self.opt.batch_size == 0:
             SEED += 2
-        img, height, width = self.random_crop(img, SEED)
+        img, mask, height, width = self.random_crop(img, mask, SEED)
         
         img = torch.from_numpy(img.astype(np.float32) / 255.0).permute(2, 0, 1).contiguous()
+        mask = torch.from_numpy(mask.astype(np.float32) / 255.0).unsqueeze(0).contiguous()
 #         mask = torch.from_numpy(mask.astype(np.float32)).contiguous()
 #         mask = self.random_mask()[0]
-        return img, height, width
+        return img, mask, height, width
 
-    def random_crop(self, img, seed):
-        width_list = [256, 320, 400, 480]
-        height_list = [256, 320, 400, 480]
+    def random_crop(self, img, mask, seed):
+        width_list = [320, 400, 480]
+        height_list = [320, 400, 480]
         random.seed(seed)
         width = random.choice(width_list)
         random.seed(seed+1)
@@ -50,13 +69,20 @@ class InpaintDataset(Dataset):
         
         max_x = img.shape[1] - width
         max_y = img.shape[0] - height
+        
+        while (max_x == 0) or (max_y==0):
+            width = random.choice(width_list)
+            height = random.choice(height_list)
+            max_x = img.shape[1] - width
+            max_y = img.shape[0] - height
 
         x = np.random.randint(0, max_x)
         y = np.random.randint(0, max_y)
-        
+        print("  crop at ",x,y,width,height)
         crop = img[y: y + height, x: x + width]
+        crop_mask = mask[y: y + height, x: x + width]
 
-        return crop, height, width
+        return crop, crop_mask, height, width
 
     @staticmethod
     def random_ff_mask(shape, max_angle = 10, max_len = 40, max_width = 50, times = 15):

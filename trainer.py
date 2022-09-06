@@ -83,6 +83,7 @@ def WGAN_trainer(opt):
             model_name = 'deepfillv2_WGAN_G_epoch%d_batchsize%d.pth' % (epoch, opt.batch_size)
         else:
             model_name = 'deepfillv2_WGAN_D_epoch%d_batchsize%d.pth' % (epoch, opt.batch_size)
+        print("load " + model_name)          
         model_name = os.path.join(save_folder, model_name)
         pretrained_dict = torch.load(model_name)
         net.load_state_dict(pretrained_dict)
@@ -92,7 +93,7 @@ def WGAN_trainer(opt):
         load_model(discriminator, opt.resume_epoch, opt, type='D')
         print('--------------------Pretrained Models are Loaded--------------------')
         
-    # To device
+# To device
     if opt.multi_gpu == True:
         generator = nn.DataParallel(generator)
         discriminator = nn.DataParallel(discriminator)
@@ -105,6 +106,7 @@ def WGAN_trainer(opt):
         discriminator = discriminator.cuda()
         perceptualnet = perceptualnet.cuda()
     
+   
     # ----------------------------------------
     #       Initialize training dataset
     # ----------------------------------------
@@ -125,18 +127,21 @@ def WGAN_trainer(opt):
     
     # Tensor type
     Tensor = torch.cuda.FloatTensor
+    #Tensor = torch.FloatTensor
 
     # Training loop
     for epoch in range(opt.resume_epoch, opt.epochs):
-        for batch_idx, (img, height, width) in enumerate(dataloader):
+        for batch_idx, (img, mask, height, width) in enumerate(dataloader):
 
-            img = img.cuda()
             # set the same free form masks for each batch
-            mask = torch.empty(img.shape[0], 1, img.shape[2], img.shape[3]).cuda()
-            for i in range(opt.batch_size):
-                mask[i] = torch.from_numpy(train_dataset.InpaintDataset.random_ff_mask(
-                                                shape=(height[0], width[0])).astype(np.float32)).cuda()
-            
+            #mask = torch.empty(img.shape[0], 1, img.shape[2], img.shape[3])
+            # TODO maschere manuali
+            #for i in range(opt.batch_size):
+            #    mask[i] = torch.from_numpy(train_dataset.InpaintDataset.random_ff_mask(
+            #                                    shape=(height[0], width[0])).astype(np.float32))
+            img = img.cuda()
+            mask = mask.cuda()
+
             # LSGAN vectors
             valid = Tensor(np.ones((img.shape[0], 1, height[0]//32, width[0]//32)))
             fake = Tensor(np.zeros((img.shape[0], 1, height[0]//32, width[0]//32)))
@@ -201,7 +206,7 @@ def WGAN_trainer(opt):
             
             masked_img = img * (1 - mask) + mask
             mask = torch.cat((mask, mask, mask), 1)
-            if (batch_idx + 1) % 40 == 0:
+            if (batch_idx + 1) % 32 == 0:
                 img_list = [img, mask, masked_img, first_out, second_out]
                 name_list = ['gt', 'mask', 'masked_img', 'first_out', 'second_out']
                 utils.save_sample_png(sample_folder = sample_folder, sample_name = 'epoch%d' % (epoch + 1), img_list = img_list, name_list = name_list, pixel_max_cnt = 255)
@@ -211,8 +216,10 @@ def WGAN_trainer(opt):
         adjust_learning_rate(opt.lr_d, optimizer_d, (epoch + 1), opt)
 
         # Save the model
+        print(" **** Save The Model ***** ")
         save_model_generator(generator, (epoch + 1), opt)
         save_model_discriminator(discriminator, (epoch + 1), opt)
+        print(" ******* Saved ********** ")
 
         ### Sample data every epoch
         if (epoch + 1) % 1 == 0:

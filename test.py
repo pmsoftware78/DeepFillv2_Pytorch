@@ -30,7 +30,7 @@ if __name__ == "__main__":
     parser.add_argument('--baseroot_mask', type = str, default = '../../inpainting/dataset/Places/img_set')
     opt = parser.parse_args()
     
-    
+    print(opt)
     # ----------------------------------------
     #       Choose CUDA visible devices
     # ----------------------------------------

@@ -58,6 +58,7 @@ def get_files(path):
     ret = []
     for root, dirs, files in os.walk(path):
         for filespath in files:
+            print(filespath)
             ret.append(os.path.join(root, filespath))
     return ret
 
@@ -97,6 +98,7 @@ def save_sample_png(sample_folder, sample_name, img_list, name_list, pixel_max_c
         img_copy = cv2.cvtColor(img_copy, cv2.COLOR_RGB2BGR)
         # Save to certain path
         save_img_name = sample_name + '_' + name_list[i] + '.jpg'
+        print("Save", save_img_name)
         save_img_path = os.path.join(sample_folder, save_img_name)
         cv2.imwrite(save_img_path, img_copy)
 
